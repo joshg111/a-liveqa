@@ -39,11 +39,6 @@ const renderQuestion = ({game}) => (
 
 export class AnswerListScreen extends React.Component {
 
-  constructor(props) {
-    super(props);
-
-  }
-
   _keyExtractor = (item, index) => item.id;
 
   _renderItem = ({item}) => (
@@ -56,8 +51,7 @@ export class AnswerListScreen extends React.Component {
   render() {
     var game = this.props.game;
     return (
-      <View style={{flex: 1,
-        flexDirection: 'column'}}>
+      <View style={{flex: 1, flexDirection: 'column'}}>
 
         <View style={{flex: 1}}>
           {renderQuestion({game})}
@@ -163,16 +157,8 @@ export class SubmitAnswerScreen extends React.Component {
     super(props);
 
     this.state = {text: '', completed: false}
-    // this.remaining = timeLeft(this.props.game);
+
     console.log("SubmitAnswerScreen: game = ", this.props.game);
-  }
-
-  componentDidMount() {
-
-  }
-
-  createAnswerMutation() {
-
   }
 
   render() {
@@ -181,24 +167,13 @@ export class SubmitAnswerScreen extends React.Component {
       return <View style={{flex:1, alignItems: 'center', justifyContent: 'center'}}><Text>Loading Answers</Text></View>
     }
     return (
-      <View style={{flex: 4, backgroundColor: 'green'}}>
+      <View style={{flex: 4}}>
         <Mutation
           mutation={CREATE_ANSWER}
           onCompleted={() => this.setState({completed: true})}
-          // update: (cache, { data: { createAnswer } }) => {
-          //   console.log("Updating game answer: ", createAnswer.answers);
-          //   cache.readQuery({
-          //     query: GET_GAME,
-          //
-          //   });
-          //   cache.writeQuery({
-          //     query: GET_GAME,
-          //     data: { currentUser: createUser.id}
-          //   });
-          // }
         >
           {(createAnswer, {data}) => (
-            <View style={{flex: 4, flexDirection:'column', backgroundColor: 'silver'}}>
+            <View style={{flex: 4, flexDirection:'column'}}>
               {renderQuestion({game: this.props.game})}
               <View style={{flex: 1, backgroundColor: 'cyan', margin: 5}}>
                 <Timer seconds={timeLeft(this.props.game)} onCompleted={() => this.setState({completed: true})} />
@@ -207,7 +182,7 @@ export class SubmitAnswerScreen extends React.Component {
                 <TextInput
                   multiline = {true}
                   numberOfLines = {4}
-                  maxLength = {400}
+                  maxLength = {200}
                   onChangeText={(text) => this.setState({text})}
                   value={this.state.text}
                   placeholder={"Your Answer"}
@@ -268,7 +243,7 @@ export class LoadGames extends React.Component {
   }
 
   pickComponent(game) {
-    // return (<SubmitAnswerScreen game={game}/>);
+
     if(isGameLive(game) && !isGameAnswered(game, this.user)) {
       // If game is live and not answered, submit your answer.
       return (<SubmitAnswerScreen game={game} currentUser={this.user}/>);
@@ -280,7 +255,7 @@ export class LoadGames extends React.Component {
 
   render() {
     return (
-      <View style={{flex:1, backgroundColor: 'lightgreen'}}>
+      <View style={{flex:1, backgroundColor: 'lightblue'}}>
         <Query
         query={GET_GAME}
         pollInterval={10000}>
@@ -294,7 +269,8 @@ export class LoadGames extends React.Component {
           if (error) {
             return <Text>`Error! ${error.message}`</Text>;
           }
-          var game = data.games ? data.games[0] : null;
+          var game = data.games && data.games.length > 0 ? data.games[0] : null;
+          console.log("game = ", game);
           if(game === null) {
             return (
               <Text>No Game Found</Text>
@@ -310,33 +286,6 @@ export class LoadGames extends React.Component {
     );
   }
 }
-
-// export default class MainScreen extends React.Component {
-//
-//   constructor(props) {
-//     super(props);
-//     console.log(props);
-//     // id: id of game.
-//     // state: `new` when this game is new to the user.
-//     // `live`: Game is now live.
-//     // `userCompleted` when this user has completed the their necessary actions for the game.
-//     // `done` when the game is over.
-//     this.id = this.props.gid;
-//     this.action = this.props.gstate;
-//
-//   }
-//
-//   render() {
-//
-//     return (
-//
-//
-//         this.pickComponent()
-//
-//
-//     );
-//   }
-// }
 
 const GET_GAME = gql`
   {

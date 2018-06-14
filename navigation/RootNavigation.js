@@ -38,19 +38,12 @@ const client = new ApolloClient({
   }
 });
 
+// Apollo queries and mutations
 const GET_USER = gql`
 {
   currentUser @client
 }
 `;
-
-// var data = client.readQuery({query: GET_USER})
-// console.log("before: ", data);
-// client.writeQuery({query: GET_USER, data: {currentUser: "abc"}});
-// data = client.readQuery({query: GET_USER})
-// console.log("after: ", data);
-
-// myCache.writeQuery({query: GET_USER, data: {data: {currentUser: "abc"}}});
 
 const CREATE_USER = gql`
 mutation createUser {
@@ -59,39 +52,8 @@ mutation createUser {
   }
 }`;
 
-class CreateUser extends React.Component {
-  componentDidMount() {
-    this.props.createUser()
-  }
-  render(){
-    return (null);
-  }
-}
-
-class QueryUser extends React.Component {
-  render() {
-    return(
-      <Query
-      query={GET_USER}>
-      {({ loading, error, data }) => {
-        if(loading) {return (<Text>Loading</Text>);}
-        if(error) {return(<Text>error</Text>);}
-        console.log("Cached user: ", data);
-        return(null)
-      }}
-      </Query>
-    );
-
-  }
-}
-
+// Load the user of this app, otherwise create a new one.
 class _StartUpScreen extends React.Component {
-  constructor(props){
-    super(props);
-    // Load the user of this app, otherwise create a new one.
-
-    // this.props.navigation.navigate('LoadGames');
-  }
 
   async componentDidMount() {
     this.client = this.props.client;
@@ -138,71 +100,17 @@ class _StartUpScreen extends React.Component {
       </View>
     );
   }
-
-  // createUserMutation() {
-  //   console.log("createUserMutation");
-  //   return(
-  //     <Mutation
-  //       mutation={CREATE_USER}
-  //       update={(cache, { data: { createUser } }) => {
-  //         console.log("Updating current user: ", createUser.id);
-  //         cache.writeQuery({
-  //           query: GET_USER,
-  //           data: { currentUser: createUser.id}
-  //         });
-  //       }}
-  //     >
-  //       {(createUser, { loading, error, data }) => {
-  //
-  //         if(loading) {
-  //           return(<ActivityIndicator />  );
-  //         }
-  //         if(error) {
-  //           return (<Text>Create User Failed</Text>);
-  //         }
-  //         return (<CreateUser createUser={createUser}/>);
-  //       }}
-  //     </Mutation>
-  //   );
-  // }
-  //
-  // render(){
-  //   return(
-  //     <View>
-  //       <Query
-  //       query={GET_USER}>
-  //       {({ loading, error, data }) => {
-  //         if(loading) {return (<Text>Loading</Text>);}
-  //         if(error) {return(<Text>error</Text>);}
-  //         console.log("Cached user: ", data);
-  //         if(data.currentUser == null) {
-  //           return(
-  //             this.createUserMutation()
-  //           )
-  //         }
-  //         return (<LoadGames user={data.currentUser}/>);
-  //       }}
-  //       </Query>
-  //
-  //     </View>
-  //   );
-  // }
 }
 
 var StartUpScreen = withApollo(_StartUpScreen);
 
 const AppNavigator = createSwitchNavigator(
   {
-    Answers: AnswerListScreen,
-    Submit: SubmitAnswerScreen,
-    // Main: MainScreen,
     Load: LoadGames,
-    Start: StartUpScreen,
-    QueryUser: QueryUser
+    Start: StartUpScreen
   },
   {
     initialRouteName: 'Start',
-    // initialRouteName: 'QueryUser',
   }
 );
 
