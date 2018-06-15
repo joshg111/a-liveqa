@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, ScrollView, StyleSheet, Text, View, FlatList, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Button, ScrollView, StyleSheet, Text, View, FlatList, TextInput } from 'react-native';
 import gql from "graphql-tag";
 import { Query, Mutation } from "react-apollo";
 
@@ -173,7 +173,8 @@ export class SubmitAnswerScreen extends React.Component {
           onCompleted={() => this.setState({completed: true})}
         >
           {(createAnswer, {data}) => (
-            <View style={{flex: 4, flexDirection:'column'}}>
+            <KeyboardAvoidingView style={{flex: 4, flexDirection: 'column'}} behavior="padding" enabled>
+
               {renderQuestion({game: this.props.game})}
               <View style={{flex: 1, backgroundColor: 'cyan', margin: 5}}>
                 <Timer seconds={timeLeft(this.props.game)} onCompleted={() => this.setState({completed: true})} />
@@ -187,17 +188,17 @@ export class SubmitAnswerScreen extends React.Component {
                   value={this.state.text}
                   placeholder={"Your Answer"}
                 />
-                <View style={{padding: 30}}>
-                  <Button
-                    title={"Submit"}
-                    onPress={() => {
-                      createAnswer({variables: {userID: this.props.currentUser.id, gameID: this.props.game.id, myAnswer: this.state.text}});
-                    }}
-                  />
-                </View>
-              </View>
 
-            </View>
+              </View>
+              <View style={{flex:1, padding: 30}}>
+                <Button
+                  title={"Submit"}
+                  onPress={() => {
+                    createAnswer({variables: {userID: this.props.currentUser.id, gameID: this.props.game.id, myAnswer: this.state.text}});
+                  }}
+                />
+              </View>
+            </KeyboardAvoidingView>
           )}
         </Mutation>
       </View>
