@@ -1,5 +1,5 @@
 import React from 'react';
-import { KeyboardAvoidingView, Button, ScrollView, StyleSheet, Text, View, FlatList, TextInput } from 'react-native';
+import { KeyboardAvoidingView, Button, ScrollView, StyleSheet, Text, View, FlatList, TextInput, AppState } from 'react-native';
 import gql from "graphql-tag";
 import { Query, Mutation } from "react-apollo";
 
@@ -39,6 +39,8 @@ const renderQuestion = ({game}) => (
 
 export class AnswerListScreen extends React.Component {
 
+  state = {}
+
   _keyExtractor = (item, index) => item.id;
 
   _renderItem = ({item}) => (
@@ -48,7 +50,13 @@ export class AnswerListScreen extends React.Component {
     />
   );
 
+  componentDidUpdate(prevProps) {
+    console.log("Did update for AnswerListScreen");
+
+  }
+
   render() {
+    console.log("render AnswerListScreen");
     var game = this.props.game;
     return (
       <View style={{flex: 1, flexDirection: 'column'}}>
@@ -56,6 +64,10 @@ export class AnswerListScreen extends React.Component {
         <View style={{flex: 1}}>
           {renderQuestion({game})}
         </View>
+
+
+        <Timer game={game} onCompleted={() => console.log("completed")} />
+
 
         <View style={{flex: 3}}>
           <FlatList
@@ -71,25 +83,31 @@ export class AnswerListScreen extends React.Component {
   }
 }
 
-class Timer extends React.Component {
+class Timer extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    this.state = {remaining: this.props.seconds};
+    this.state = {
+      remaining: timeLeft(this.props.game),
+      appState: AppState.currentState
+    };
   }
 
   componentWillUnmount() {
     clearInterval(this.timer);
+    AppState.removeEventListener('change', this.handleAppStateChange.bind(this));
   }
 
-  componentDidUpdate(prevProps) {
-    console.log("updating props, seconds = ", this.props.seconds);
-    if(prevProps.seconds != this.props.seconds) {
-      this.setState({remaining: this.props.seconds});
-    }
-  }
+  // componentDidUpdate(prevProps) {
+  //   console.log("updating props, seconds = ", this.props.seconds);
+  //   if(prevProps.seconds != this.props.seconds) {
+  //     this.setState({remaining: this.props.seconds});
+  //   }
+  // }
 
   componentDidMount() {
+
+    AppState.addEventListener('change', this.handleAppStateChange.bind(this));
 
     this.timer = setInterval(() => {
       console.log("tick");
@@ -103,6 +121,16 @@ class Timer extends React.Component {
 
   }
 
+  handleAppStateChange(nextAppState) {
+    console.log("handleAppStateChange");
+    if (this.state.appState.match(/inactive|background/) && nextAppState === 'active') {
+      console.log("updating timer state");
+      this.setState({remaining: timeLeft(this.props.game)});
+    }
+    this.setState({appState: nextAppState});
+
+  }
+
   render() {
     var seconds = this.state.remaining % 60;
     var minutes = Math.floor(this.state.remaining / 60);
@@ -110,23 +138,25 @@ class Timer extends React.Component {
       return (null);
     }
     return (
-      <View style={{flex: 1, flexDirection: 'column'}}>
-        <View style={{flex: 1, justifyContent: 'center'}}>
-          <Text style={{fontWeight: 'bold', fontSize: 24, textAlign: 'center'}}>Time Left</Text>
-        </View>
-        <View style={{flexDirection:'row', flex: 1, justifyContent: 'space-evenly', alignItems: 'center', backgroundColor: 'pink'}}>
+      <View style={{flex: 1, backgroundColor: 'cyan', margin: 5}}>
+        <View style={{flex: 1, flexDirection: 'column', margin: 5}}>
+          <View style={{flex: 1, justifyContent: 'center'}}>
+            <Text style={{fontWeight: 'bold', fontSize: 24, textAlign: 'center'}}>Time Left</Text>
+          </View>
+          <View style={{flexDirection:'row', flex: 1, justifyContent: 'space-evenly', alignItems: 'center', backgroundColor: 'pink'}}>
 
-            {minutes ? (
+              {minutes ? (
+                <Text style={styles.timerText}>
+                  {minutes} Minute{minutes > 1 ? 's' : ''}
+                </Text>) : null}
+
+
               <Text style={styles.timerText}>
-                {minutes} Minute{minutes > 1 ? 's' : ''}
-              </Text>) : null}
+                {seconds} Seconds
+              </Text>
 
 
-            <Text style={styles.timerText}>
-              {seconds} Seconds
-            </Text>
-
-
+          </View>
         </View>
       </View>
 
@@ -176,9 +206,9 @@ export class SubmitAnswerScreen extends React.Component {
             <KeyboardAvoidingView style={{flex: 4, flexDirection: 'column'}} behavior="padding" enabled>
 
               {renderQuestion({game: this.props.game})}
-              <View style={{flex: 1, backgroundColor: 'cyan', margin: 5}}>
-                <Timer seconds={timeLeft(this.props.game)} onCompleted={() => this.setState({completed: true})} />
-              </View>
+
+              <Timer game={this.props.game} onCompleted={() => this.setState({completed: true})} />
+
               <View style={{backgroundColor: 'white', flex: 1, margin: 5}}>
                 <TextInput
                   multiline = {true}
@@ -207,11 +237,12 @@ export class SubmitAnswerScreen extends React.Component {
 }
 
 const timeLeft = (game) => {
-  // return 500;
   var date = new Date(game.createdAt);
   console.log("before date: ", date);
   date.setMinutes(date.getMinutes() + game.duration);
-  return (Math.floor((date - (new Date())) / 1000));
+  var res = (Math.floor((date - (new Date())) / 1000));
+  console.log("Time left = ", res);
+  return res;
 }
 
 const isGameLive = (game) => {
