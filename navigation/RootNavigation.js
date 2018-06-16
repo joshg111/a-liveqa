@@ -12,31 +12,6 @@ import { persistCache } from 'apollo-cache-persist';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 
 
-const cache = new InMemoryCache();
-
-persistCache({
-  cache,
-  storage: AsyncStorage,
-});
-
-const defaults = {
-  currentUser: null
-}
-
-const typeDefs = `
-type Query {
-  currentUser: String
-}
-`;
-
-const client = new ApolloClient({
-  cache,
-  uri: "https://us1.prisma.sh/jagreenf111-8fe67d/prisma-liveqa/dev",
-  clientState: {
-    defaults,
-    typeDefs
-  }
-});
 
 // Apollo queries and mutations
 const GET_USER = gql`
@@ -68,13 +43,13 @@ class _StartUpScreen extends React.Component {
 
     if(user == null) {
       try {
-        var {data: {createUser: user}} = await client.mutate({
+        var {data: {createUser: user}} = await this.client.mutate({
           mutation: CREATE_USER,
           update: (cache, { data: { createUser } }) => {
             console.log("Updating current user: ", createUser.id);
             cache.writeQuery({
               query: GET_USER,
-              data: { currentUser: createUser.id}
+              data: { currentUser: createUser}
             });
           }
         });
@@ -116,7 +91,57 @@ const AppNavigator = createSwitchNavigator(
 
 export default class RootNavigation extends React.Component {
 
+
+  state = {
+      client: null,
+      loaded: false,
+    };
+
+  async componentDidMount() {
+    const cache = new InMemoryCache();
+
+    const defaults = {
+      currentUser: null
+    }
+
+    const typeDefs = `
+    type Query {
+      currentUser: User
+    }
+    `;
+
+    const client = new ApolloClient({
+      cache,
+      uri: "https://us1.prisma.sh/jagreenf111-8fe67d/prisma-liveqa/dev",
+      clientState: {
+        defaults,
+        typeDefs
+      }
+    });
+
+    try {
+      await persistCache({
+        cache,
+        debug: true,
+        storage: AsyncStorage,
+        trigger: 'background'
+      });
+    } catch (error) {
+      console.error('Error restoring Apollo cache', error);
+    }
+
+    this.setState({
+      client,
+      loaded: true,
+    });
+  }
+
   render() {
+    const { client, loaded } = this.state;
+
+    if (!loaded) {
+      return <View><Text>Loading...</Text></View>;
+    }
 
     return (
       <ApolloProvider client={client}>

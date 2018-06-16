@@ -256,7 +256,7 @@ export class LoadGames extends React.Component {
 
   render() {
     return (
-      <View style={{flex:1, backgroundColor: 'lightblue'}}>
+      <View style={{flex:1, backgroundColor: 'silver'}}>
         <Query
         query={GET_GAME}
         pollInterval={10000}>
