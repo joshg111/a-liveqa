@@ -1,5 +1,5 @@
 import React from 'react';
-import { KeyboardAvoidingView, Button, ScrollView, StyleSheet, Text, View, FlatList, TextInput, AppState } from 'react-native';
+import { Platform, KeyboardAvoidingView, Button, ScrollView, StyleSheet, Text, View, FlatList, TextInput, AppState } from 'react-native';
 import gql from "graphql-tag";
 import { Query, Mutation } from "react-apollo";
 
@@ -98,13 +98,6 @@ class Timer extends React.PureComponent {
     AppState.removeEventListener('change', this.handleAppStateChange.bind(this));
   }
 
-  // componentDidUpdate(prevProps) {
-  //   console.log("updating props, seconds = ", this.props.seconds);
-  //   if(prevProps.seconds != this.props.seconds) {
-  //     this.setState({remaining: this.props.seconds});
-  //   }
-  // }
-
   componentDidMount() {
 
     AppState.addEventListener('change', this.handleAppStateChange.bind(this));
@@ -181,6 +174,21 @@ mutation createAnswer($userID: ID!, $myAnswer: String!, $gameID: ID!) {
 }
 `;
 
+class WrapperKeyboardAvoider extends React.Component {
+  render() {
+    if(Platform.OS === 'ios') {
+      return (
+        <KeyboardAvoidingView style={styles.container} behavior="padding" enabled>
+          {this.props.children}
+        </KeyboardAvoidingView>
+      );
+    }
+    return (
+      this.props.children
+    );
+  }
+}
+
 export class SubmitAnswerScreen extends React.Component {
 
   constructor(props) {
@@ -202,34 +210,40 @@ export class SubmitAnswerScreen extends React.Component {
           mutation={CREATE_ANSWER}
           onCompleted={() => this.setState({completed: true})}
         >
-          {(createAnswer, {data}) => (
-            <KeyboardAvoidingView style={{flex: 4, flexDirection: 'column'}} behavior="padding" enabled>
+          {(createAnswer, {data}) => {
+            return (
+              <View style={{flex:1}}>
 
-              {renderQuestion({game: this.props.game})}
+              <WrapperKeyboardAvoider>
 
-              <Timer game={this.props.game} onCompleted={() => this.setState({completed: true})} />
+                {renderQuestion({game: this.props.game})}
 
-              <View style={{backgroundColor: 'white', flex: 1, margin: 5}}>
-                <TextInput
-                  multiline = {true}
-                  numberOfLines = {4}
-                  maxLength = {200}
-                  onChangeText={(text) => this.setState({text})}
-                  value={this.state.text}
-                  placeholder={"Your Answer"}
-                />
+                <Timer game={this.props.game} onCompleted={() => this.setState({completed: true})} />
+
+                <View style={{backgroundColor: 'white', flex: 1, margin: 5}}>
+                  <TextInput
+                    multiline = {true}
+                    numberOfLines = {4}
+                    maxLength = {200}
+                    onChangeText={(text) => this.setState({text})}
+                    value={this.state.text}
+                    placeholder={"Your Answer"}
+                  />
+
+                </View>
+                <View style={{flex:1}}>
+                  <Button
+                    title={"Submit"}
+                    onPress={() => {
+                      createAnswer({variables: {userID: this.props.currentUser.id, gameID: this.props.game.id, myAnswer: this.state.text}});
+                    }}
+                  />
+                </View>
+
+              </WrapperKeyboardAvoider>
 
               </View>
-              <View style={{flex:1, padding: 30}}>
-                <Button
-                  title={"Submit"}
-                  onPress={() => {
-                    createAnswer({variables: {userID: this.props.currentUser.id, gameID: this.props.game.id, myAnswer: this.state.text}});
-                  }}
-                />
-              </View>
-            </KeyboardAvoidingView>
-          )}
+            );}}
         </Mutation>
       </View>
     );
