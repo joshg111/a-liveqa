@@ -170,6 +170,10 @@ mutation createAnswer($userID: ID!, $myAnswer: String!, $gameID: ID!) {
       }
   	}) {
     id
+    myAnswer
+    user {
+      id
+    }
   }
 }
 `;
@@ -209,6 +213,16 @@ export class SubmitAnswerScreen extends React.Component {
         <Mutation
           mutation={CREATE_ANSWER}
           onCompleted={() => this.setState({completed: true})}
+          update={(cache, { data: { createAnswer } }) => {
+            console.log("createAnswer = ", createAnswer);
+            var game = this.props.game;
+            var newGame = {...game, answers: this.props.game.answers.concat([createAnswer])};
+            console.log("answers = ", this.props.game.answers.concat([createAnswer]));
+            console.log("newGame = ", newGame);
+            // cache.writeQuery({ query: GET_ONE_GAME, variables: {id: this.props.game.id}, data: {game: newGame} });
+            cache.writeQuery({ query: GET_GAME, data: {games: [newGame]} });
+            console.log("updated my answer");
+          }}
         >
           {(createAnswer, {data}) => {
             return (
@@ -351,6 +365,24 @@ const GET_GAME = gql`
   }
 `;
 
+
+const GET_ONE_GAME = gql`
+query game($id: ID!) {
+  game(where:{id: $id}) {
+    id
+    question
+    createdAt
+    duration
+    answers {
+      id
+      myAnswer
+      user {
+        id
+      }
+    }
+  }
+}
+`;
 
 
 const styles = StyleSheet.create({
