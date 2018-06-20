@@ -65,7 +65,7 @@ export class AnswerListScreen extends React.Component {
           {renderQuestion({game})}
         </View>
 
-        { timeLeft(game) > 0 &&
+        { !game.isCompleted && timeLeft(game) > 0 &&
         <Timer game={game} onCompleted={() => console.log("completed")} /> }
 
 
@@ -313,7 +313,7 @@ export class LoadGames extends React.Component {
 
   pickComponent(game) {
 
-    if(isGameLive(game) && !isGameAnswered(game, this.user)) {
+    if(!game.isCompleted && isGameLive(game) && !isGameAnswered(game, this.user)) {
       // If game is live and not answered, submit your answer.
       return (<SubmitAnswerScreen game={game} currentUser={this.user}/>);
     }
