@@ -101,21 +101,72 @@ export default class RootNavigation extends React.Component {
     const cache = new InMemoryCache();
 
     const defaults = {
-      currentUser: null
+      currentUser: null,
+      isCompleted: false
     }
 
     const typeDefs = `
+
+
+    type Mutation {
+      setGameCompleted(id: ID!): Game
+    }
+
+
     type Query {
       currentUser: User
+
     }
     `;
+
+    const resolvers = {
+
+      Mutation: {
+        setGameCompleted: (obj, variables, { cache, getCacheKey }) => {
+
+          const id = getCacheKey({ __typename: 'Game', id: variables.id })
+
+          const fragment = gql`
+            fragment completeGame on Game {
+              isCompleted
+            }
+          `;
+          console.log("toggle id = ", id);
+          cache.writeData({id, data: {isCompleted: true}})
+          return null;
+        }
+      },
+
+      Game: {
+        isCompleted: (obj, variables, { cache, getCacheKey }) => {
+          const fragment = gql`
+            fragment completeGame on Game {
+              isCompleted
+            }
+          `;
+          const id = getCacheKey({ __typename: 'Game', id: obj.id })
+
+          console.log("cache is present");
+          var game = cache.readFragment({id, fragment});
+          console.log("resolver after read fragment");
+          console.log("game missing isCompleted = ", game);
+          if(game && 'isCompleted' in game) {
+            return game.isCompleted;
+          }
+
+          return false;
+
+        }
+      }
+    };
 
     const client = new ApolloClient({
       cache,
       uri: "https://us1.prisma.sh/jagreenf111-8fe67d/prisma-liveqa/dev",
       clientState: {
         defaults,
-        typeDefs
+        typeDefs,
+        resolvers
       }
     });
 

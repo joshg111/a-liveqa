@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, KeyboardAvoidingView, Button, ScrollView, StyleSheet, Text, View, FlatList, TextInput, AppState } from 'react-native';
 import gql from "graphql-tag";
-import { Query, Mutation } from "react-apollo";
+import { Query, Mutation, withApollo } from "react-apollo";
 
 class MyListItem extends React.PureComponent {
 
@@ -65,8 +65,8 @@ export class AnswerListScreen extends React.Component {
           {renderQuestion({game})}
         </View>
 
-
-        <Timer game={game} onCompleted={() => console.log("completed")} />
+        { timeLeft(game) > 0 &&
+        <Timer game={game} onCompleted={() => console.log("completed")} /> }
 
 
         <View style={{flex: 3}}>
@@ -83,7 +83,7 @@ export class AnswerListScreen extends React.Component {
   }
 }
 
-class Timer extends React.PureComponent {
+class _Timer extends React.PureComponent {
   constructor(props) {
     super(props);
 
@@ -108,6 +108,10 @@ class Timer extends React.PureComponent {
       if(this.state.remaining <= 0) {
         clearInterval(this.timer);
         this.props.onCompleted();
+
+        // Trigger local state change which will trigger a re-render of the
+        // LoadGame component.
+        this.props.client.mutate({mutation: SET_GAME_COMPLETED, variables: {id: this.props.game.id}});
       }
 
     }, 1000);
@@ -159,6 +163,14 @@ class Timer extends React.PureComponent {
 
 }
 
+var Timer = withApollo(_Timer);
+
+const SET_GAME_COMPLETED = gql`
+mutation SetGameCompleted($id: ID!) {
+  setGameCompleted(id: $id) @client
+}
+`;
+
 const CREATE_ANSWER = gql`
 mutation createAnswer($userID: ID!, $myAnswer: String!, $gameID: ID!) {
   createAnswer(
@@ -199,8 +211,6 @@ export class SubmitAnswerScreen extends React.Component {
     super(props);
 
     this.state = {text: '', completed: false}
-
-    console.log("SubmitAnswerScreen: game = ", this.props.game);
   }
 
   render() {
@@ -214,12 +224,8 @@ export class SubmitAnswerScreen extends React.Component {
           mutation={CREATE_ANSWER}
           onCompleted={() => this.setState({completed: true})}
           update={(cache, { data: { createAnswer } }) => {
-            console.log("createAnswer = ", createAnswer);
             var game = this.props.game;
             var newGame = {...game, answers: this.props.game.answers.concat([createAnswer])};
-            console.log("answers = ", this.props.game.answers.concat([createAnswer]));
-            console.log("newGame = ", newGame);
-            // cache.writeQuery({ query: GET_ONE_GAME, variables: {id: this.props.game.id}, data: {game: newGame} });
             cache.writeQuery({ query: GET_GAME, data: {games: [newGame]} });
             console.log("updated my answer");
           }}
@@ -265,6 +271,10 @@ export class SubmitAnswerScreen extends React.Component {
 }
 
 const timeLeft = (game) => {
+  // if(!game.isCompleted) {
+  //   return 4;
+  // }
+
   var date = new Date(game.createdAt);
   console.log("before date: ", date);
   date.setMinutes(date.getMinutes() + game.duration);
@@ -274,7 +284,6 @@ const timeLeft = (game) => {
 }
 
 const isGameLive = (game) => {
-  console.log(game);
   var res = (timeLeft(game) > 0);
   console.log("is game live: ", res);
   return res;
@@ -327,10 +336,12 @@ export class LoadGames extends React.Component {
             );
           }
           if (error) {
+            console.log("error game = ", data.games[0]);
             return <Text>`Error! ${error.message}`</Text>;
           }
+
           var game = data.games && data.games.length > 0 ? data.games[0] : null;
-          console.log("game = ", game);
+          console.log("LoadGames: game = ", game);
           if(game === null) {
             return (
               <Text>No Game Found</Text>
@@ -348,9 +359,10 @@ export class LoadGames extends React.Component {
 }
 
 const GET_GAME = gql`
-  {
+query Games  {
     games(orderBy: createdAt_DESC, first: 1) {
       id
+      isCompleted @client
       question
       createdAt
       duration
@@ -363,25 +375,6 @@ const GET_GAME = gql`
       }
     }
   }
-`;
-
-
-const GET_ONE_GAME = gql`
-query game($id: ID!) {
-  game(where:{id: $id}) {
-    id
-    question
-    createdAt
-    duration
-    answers {
-      id
-      myAnswer
-      user {
-        id
-      }
-    }
-  }
-}
 `;
 
 
